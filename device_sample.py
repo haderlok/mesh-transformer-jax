@@ -10,7 +10,8 @@ from mesh_transformer import util
 from mesh_transformer.checkpoint import read_ckpt
 from mesh_transformer.sampling import nucleaus_sample
 from mesh_transformer.transformer_shard import CausalTransformer
-import transformers
+from transformers import GPT2TokenizerFast
+from tokenizers import Tokenizer
 from smart_open import open
 
 from mesh_transformer.util import clip_by_global_norm
@@ -20,6 +21,7 @@ def parse_args():
     # Parse command line arguments
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, default=None, help="Config file location")
+    parser.add_argument("--tokenizer", type=str, default=None, help="Custom tokenizer file location")
 
     args = parser.parse_args()
     return args
@@ -81,11 +83,16 @@ if __name__ == "__main__":
         del network.state["opt_state"]
         network.state = network.move_xmap(network.state, np.zeros(local_shards))
 
-        tokenizer = transformers.GPT2TokenizerFast.from_pretrained('gpt2')
+        if args.tokenizer:
+            tokenizer = Tokenizer.from_file(args.tokenizer)
+        else:
+            tokenizer = GPT2TokenizerFast.from_pretrained('gpt2')
 
         while True:
             context = input("Type input:")
             tokens = tokenizer.encode(context)
+            if args.tokenizer:
+                tokens = tokens.ids
 
             start = time.time()
 
