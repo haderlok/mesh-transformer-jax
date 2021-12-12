@@ -181,8 +181,10 @@ if __name__ == "__main__":
         
         scheduler = util.lr_finder_schedule(args.lr_finder_start, args.lr_finder_end, args.lr_finder_step)
         total_steps = (args.lr_finder_end - args.lr_finder_start) // args.lr_finder_step
+        lr_finder = True
     else:
         scheduler = util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr)
+        lr_finder = False
     
     opt = optax.chain(
         optax.scale(1 / gradient_accumulation_steps),
@@ -301,6 +303,9 @@ if __name__ == "__main__":
             val_set.reset()
         print(f"Eval fn compiled in {time.time() - start:.06}s")
 
+        if lr_finder:
+            original_state = network.state
+
         project = params.get("wandb_project", "mesh-transformer-jax")
         wandb.init(project=project, name=params["name"], config=params)
 
@@ -333,6 +338,10 @@ if __name__ == "__main__":
             if step == total_steps:
                 print("training completed!")
                 exit()
+
+            if lr_finder:
+                network.state = original_state
+                train_dataset.reset()
 
             start = time.time()
             loss, last_loss, grad_norm, grad_norm_micro = train_step(
