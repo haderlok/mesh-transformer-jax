@@ -25,6 +25,14 @@ def gpt3_schedule(warmup_steps,
 
     return sch
 
+def lr_finder_schedule(start, end, step_size):
+    def sch(step):
+        lr = start + step_size*step
+        return jnp.clip(lr, 0, end)
+
+    return sch
+
+
 
 def global_norm(updates, use_psum=True):
     pre_sqrt = sum([jnp.sum(jnp.square(x)) for x in jax.tree_leaves(updates)])

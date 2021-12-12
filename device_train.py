@@ -42,6 +42,9 @@ def parse_args():
     parser.add_argument("--config", type=str, default=None, help="Config file location")
     parser.add_argument("--tune-model-path", type=str, default=None, help="Base model to finetune")
     parser.add_argument("--fresh-opt", default=False, action="store_true", help="Use a newly initialized optimizer, ignoring any optimizer state saved in the base checkpoint")
+    parser.add_argument("--lr-finder-start", type=float, default=None, help="Learning rate finder start value")
+    parser.add_argument("--lr-finder-end", type=float, default=None, help="Learning rate finder end value")
+    parser.add_argument("--lr-finder-step", type=float, default=None, help="Learning rate finder step size")
 
     args = parser.parse_args()
     return args
@@ -171,7 +174,15 @@ if __name__ == "__main__":
     # alpha parameter for the exponential moving averages used to compute B_simple
     noise_scale_alpha = params.get("noise_scale_alpha", 0.01)
 
-    scheduler = util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr)
+    if args.lr_finder_start or args.lr_finder_end or args.lr_finder_step:
+        assert args.lr_finder_start and args.lr_finder_end and args.lr_finder_step
+        assert args.lr_finder_start < args.lr_finder_end
+        assert args.lr_finder_step < args.lr_finder_start
+        
+        scheduler = util.lr_finder_schedule(args.lr_finder_start, args.lr_finder_end, args.lr_finder_step)
+        total_steps = (args.lr_finder_end - args.lr_finder_start) // args.lr_finder_step
+    else:
+        scheduler = util.gpt3_schedule(warmup_steps, anneal_steps, lr, end_lr)
     
     opt = optax.chain(
         optax.scale(1 / gradient_accumulation_steps),
