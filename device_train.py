@@ -177,7 +177,7 @@ if __name__ == "__main__":
     if args.lr_finder_start or args.lr_finder_end or args.lr_finder_step:
         assert args.lr_finder_start and args.lr_finder_end and args.lr_finder_step
         assert args.lr_finder_start < args.lr_finder_end
-        assert args.lr_finder_step < args.lr_finder_start
+        assert args.lr_finder_step < (args.lr_finder_end - args.lr_finder_start)
         
         scheduler = util.lr_finder_schedule(args.lr_finder_start, args.lr_finder_end, args.lr_finder_step)
         total_steps = (args.lr_finder_end - args.lr_finder_start) // args.lr_finder_step
